@@ -22,6 +22,9 @@ class Course:
     def add_pre(self, course_id: int):
         self.pres.append(course_id)
 
+    def __eq__(self, string: str):
+        return self.name == string
+
     def __str__(self):
         return self.name
 
@@ -46,6 +49,33 @@ def new_course(name: str, unit: int = 3, course_type=CourseType.MAIN):
     name = name.replace('ي', 'ی').replace('ك', 'ک')
     data.append(Course(name, unit, course_type))
     save_data()
+
+
+def get__pres_str(course_id: int):
+    result = data[course_id].name + '\n*****'
+    for pre_id in data[course_id].pres:
+        result += '\n' + data[pre_id].name
+
+    return result
+
+
+def get_all_pres(course_id: int, result=None):
+    if result is None:
+        result = []
+    for pre_id in data[course_id].pres:
+        result.append(pre_id)
+        result = get_all_pres(pre_id, result)
+
+    return result
+
+
+def get_all_pres_str(course_id: int):
+    result = data[course_id].name + '\n*****'
+    pres = set(get_all_pres(course_id))
+    for pre_id in pres:
+        result += '\n' + data[pre_id].name
+
+    return result
 
 
 if __name__ == '__main__':
