@@ -1,8 +1,7 @@
 import enum
 import pickle
-import pprint
 
-from config import data_path, bot_token
+from config import data_path, bot_token, admin_id
 import time
 
 import telepot
@@ -97,12 +96,21 @@ def search_course(name: str):
 
 def on_message(msg):
     content_type, chat_type, chat_id = telepot.glance(msg)
+    if content_type == 'text':
+        if msg['text'] == '/start':
+            if admin_id:
+                bot.sendMessage(admin_id, 'START [%s](tg://user?id=%d)' % (msg['from']['first_name'], chat_id),
+                                'Markdown')
 
 
 def on_inline_query(msg):
     query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
     if not query_string:
         return
+
+    if admin_id:
+        bot.sendMessage(admin_id, '[%s](tg://user?id=%d)' % (msg['from']['first_name'], from_id), 'Markdown')
+
     query_string = query_string.replace('ي', 'ی').replace('ك', 'ک')
     articles = [InlineQueryResultArticle(
         id=str(res[0]),
