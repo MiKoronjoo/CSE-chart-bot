@@ -103,6 +103,7 @@ def on_inline_query(msg):
     query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
     if not query_string:
         return
+    query_string = query_string.replace('ي', 'ی').replace('ك', 'ک')
     articles = [InlineQueryResultArticle(
         id=str(res[0]),
         title=res[1],
