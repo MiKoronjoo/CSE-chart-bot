@@ -1,5 +1,6 @@
 import enum
 import pickle
+import pprint
 
 from config import data_path, bot_token, admin_id
 import time
@@ -94,13 +95,38 @@ def search_course(name: str):
     return result[:10]
 
 
+def report(msg, substr: str = ''):
+    if admin_id:
+        bot.sendMessage(admin_id, '%s [%s](tg://user?id=%d)' % (substr, msg['from']['first_name'], msg['from']['id']),
+                        'Markdown')
+
+
 def on_message(msg):
     content_type, chat_type, chat_id = telepot.glance(msg)
-    if content_type == 'text':
-        if msg['text'] == '/start':
-            if admin_id:
-                bot.sendMessage(admin_id, 'START [%s](tg://user?id=%d)' % (msg['from']['first_name'], chat_id),
-                                'Markdown')
+    if content_type == 'text' and chat_type == u'private':
+        text = msg['text']
+        if text == '/start':
+            report(msg, 'START')
+            bot.sendMessage(chat_id, 'خوش اومدید!\nلطفا قسمتی از نام یک درس را بفرستید:')
+        elif text.startswith('/crs'):
+            try:
+                crs_id = int(text[4:])
+                bot.sendMessage(chat_id, get_pres_str(crs_id), reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[[InlineKeyboardButton(text='نمایش تمام دروس پیش‌نیاز',
+                                                           callback_data='P' + str(crs_id))]]))
+            except (ValueError, IndexError) as e:
+                bot.sendMessage(chat_id, 'موردی پیدا نشد!')
+                bot.sendMessage(chat_id, 'لطفا قسمتی از نام یک درس را بفرستید:')
+                return
+        else:
+            report(msg, 'PRIVATE')
+            res = ['%s\n/crs%d\n\n' % (x[1], x[0]) for x in search_course(text)]
+            if not res:
+                bot.sendMessage(chat_id, 'موردی پیدا نشد!')
+                bot.sendMessage(chat_id, 'لطفا قسمتی از نام یک درس را بفرستید:')
+                return
+
+            bot.sendMessage(chat_id, ''.join(res))
 
 
 def on_inline_query(msg):
@@ -108,9 +134,7 @@ def on_inline_query(msg):
     if not query_string:
         return
 
-    if admin_id:
-        bot.sendMessage(admin_id, '[%s](tg://user?id=%d)' % (msg['from']['first_name'], from_id), 'Markdown')
-
+    report(msg, 'INLINE')
     query_string = query_string.replace('ي', 'ی').replace('ك', 'ک')
     articles = [InlineQueryResultArticle(
         id=str(res[0]),
@@ -135,8 +159,12 @@ def on_inline_query(msg):
 
 
 def on_callback_query(msg):
+    pprint.pprint(msg)
     query_id, from_id, query_data = telepot.glance(msg, flavor='callback_query')
-    bot.editMessageText(msg['inline_message_id'], get_all_pres_str(int(query_data)))
+    if query_data[0] == 'P':
+        bot.editMessageText((from_id, msg['message']['message_id']), get_all_pres_str(int(query_data[1:])))
+    else:
+        bot.editMessageText(msg['inline_message_id'], get_all_pres_str(int(query_data)))
 
 
 bot = telepot.Bot(bot_token)
